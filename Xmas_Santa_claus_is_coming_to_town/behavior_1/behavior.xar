@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="UTF-8" ?><ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3"><Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0"><bitmap>media/images/box/root.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram><Box name="Timeline" id="2" localization="8" tooltip="This box is empty (contains a single motion layer with no motor position&#x0A;defined in it) and should be used to create any animation you would like." x="1001" y="19"><bitmap>media/images/box/movement/move.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" /><Timeline enable="1" fps="5" start_frame="1" end_frame="-1" size="90"><BehaviorLayer name="SONG"><BehaviorKeyframe name="keyframe12" index="12"><Diagram><Box name="Play Sound" id="1" localization="8" tooltip="Play a sound file. Select the file in parameters. The format of the file can be wav or ogg (on virtual robot) and also mp3 (on a real robot).&#x0A;&#x0A;Note: There can be some delay to play ogg or mp3 (on a robot) files. We advise you to use wav if&#x0A;you want a fast play of the file." x="102" y="56"><bitmap>media/images/box/interaction/play_music.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bIsRunning = False
+
+    def onUnload(self):
+        self.bIsRunning = False
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+
+    def onInput_onStop(self):
+        if( self.bIsRunning ):
+            self.onUnload()
+            self.onStopped()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Starts the music." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stops the music." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished or stopped." id="4" /><Parameter name="File name" inherits_from_parent="0" content_type="4" value="/santa_claus_is_coming_to_town_.wav" default_value="" tooltip="Name of the file you want to play.&#x0A;&#x0A;Note: You can click on the folder icon to browse the project content or import&#x0A;new files to the project." id="5" /><Parameter name="Begin position (s)" inherits_from_parent="0" content_type="2" value="0" default_value="0" min="0" max="600" tooltip="Position in seconds where the playing must start." id="6" /><Parameter name="Volume (%)" inherits_from_parent="0" content_type="1" value="100" default_value="100" min="0" max="100" tooltip="Volume the file is played with." id="7" /><Parameter name="Balance L/R" inherits_from_parent="0" content_type="2" value="0" default_value="0" min="-1" max="1" tooltip="Value which determines if the sound is played more on the robot&apos;s left or right.&#x0A;You can particularly set it to:&#x0A;- -1 to play only on the left loudspeaker.&#x0A;- 0 to play on both loudspeakers.&#x0A;- 1 to play only on the right loudspeaker." id="8" /><Parameter name="Play in loop" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="This parameter allows to play the file in loop. The playing will start each time at&#x0A;the beginning of the file." id="9" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram><Box name="Play Sound File" id="2" localization="8" tooltip="Play the sound." x="442" y="70"><bitmap>media/images/box/interaction/play_music.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.player = ALProxy('ALAudioPlayer')
+        self.playerStop = ALProxy('ALAudioPlayer', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.playerStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            if (self.getParameter("Play in loop")) :
+               id = self.player.post.playFileInLoop(p,self.getParameter("Volume (%)")/100.,self.getParameter("Balance L/R"))
+            else :
+               id = self.player.post.playFileFromPosition(p,self.getParameter("Begin position (s)"),self.getParameter("Volume (%)")/100.,self.getParameter("Balance L/R"))
+            self.ids.append(id)
+            self.player.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Begin position (s)" inherits_from_parent="1" content_type="2" value="0" default_value="0" min="0" max="600" tooltip="Position in seconds where the playing must start." id="5" /><Parameter name="Volume (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="0" max="100" tooltip="Volume the file is played with." id="6" /><Parameter name="Balance L/R" inherits_from_parent="1" content_type="2" value="0" default_value="0" min="-1" max="1" tooltip="Value which determines if the sound is played more on the robot&apos;s left or right.&#x0A;You can particularly set it to:&#x0A;- -1 to play only on the left loudspeaker.&#x0A;- 0 to play on both loudspeakers.&#x0A;- 1 to play only on the right loudspeaker." id="7" /><Parameter name="Play in loop" inherits_from_parent="1" content_type="0" value="0" default_value="0" tooltip="This parameter allows to play the file in loop. The playing will start each time at&#x0A;the beginning of the file." id="8" /></Box><Box name="Get Attached File" id="1" localization="8" tooltip="Use this box to choose an attached file in its parameters. The filename will be sent on&#x0A;the output when the input is stimulated." x="216" y="71"><bitmap>media/images/box/folder.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        pass
+
+    def onInput_onStart(self):
+        self.onStopped(self.behaviorAbsolutePath() + self.getParameter("File name"))]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="1" inner="0" tooltip="To send the filepath on the output." id="2" /><Output name="onStopped" type="3" type_size="1" nature="2" inner="0" tooltip="The filepath of the selected resource file." id="3" /><Parameter name="File name" inherits_from_parent="1" content_type="4" value="" default_value="" tooltip="Name of the file which is going to be sent on the box output.&#x0A;&#x0A;Note: You can click on the folder icon to browse the project content or import&#x0A;new files to the project." id="4" /></Box><Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" /><Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="2" indexofinput="2" outputowner="1" indexofoutput="3" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline><Resource name="Audio player" type="Lock" timeout="0" /></Box><Box name="GREEN LEDs" id="3" localization="8" tooltip="Set the intensity of the LEDs of a given group." x="108" y="184"><bitmap>media/images/box/interaction/LED.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.leds = ALProxy("ALLeds")
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onSet(self):
+        self.leds.fade(self.getParameter("LEDs group"), self.getParameter("Intensity (%)")/100., self.getParameter("Duration (s)"))
+        self.leds.fadeRGB(self.getParameter("LEDs group"), "green", self.getParameter("Duration (s)"))
+        self.onReady() # activate output of the box]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onSet" type="1" type_size="1" nature="2" inner="0" tooltip="When this input is stimulated, the intensity of all the LEDs from the group is&#x0A;set to the intensity parameter value." id="2" /><Output name="onReady" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when LEDs intensity has been set." id="3" /><Parameter name="LEDs group" inherits_from_parent="0" content_type="3" value="AllLeds" default_value="EarLeds" custom_choice="1" tooltip="The group of LEDs which intensity is to set.&#x0A;&#x0A;Note: You can call the listGroups() method of ALMotion to get the name of LEDs&#x0A;groups which are not listed here." id="4"><Choice value="AllLeds" /><Choice value="BrainLeds" /><Choice value="EarLeds" /><Choice value="FaceLeds" /><Choice value="FeetLeds" /><Choice value="LeftEarLeds" /><Choice value="LeftFaceLeds" /><Choice value="LeftFootLeds" /><Choice value="RightEarLeds" /><Choice value="RightFaceLeds" /><Choice value="RightFootLeds" /></Parameter><Parameter name="Intensity (%)" inherits_from_parent="0" content_type="1" value="100" default_value="100" min="0" max="100" tooltip="Intensity all the LEDs from the group is set to." id="5" /><Parameter name="Duration (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="60" tooltip="How much time to go to the max/min intensity in seconds." id="6" /></Box><Box name="RED LEDs" id="4" localization="8" tooltip="Set the intensity of the LEDs of a given group." x="109" y="369"><bitmap>media/images/box/interaction/LED.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.leds = ALProxy("ALLeds")
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onSet(self):
+        self.leds.fade(self.getParameter("LEDs group"), self.getParameter("Intensity (%)")/100., self.getParameter("Duration (s)"))
+        self.leds.fadeRGB(self.getParameter("LEDs group"), "red", self.getParameter("Duration (s)"))
+        self.onReady() # activate output of the box]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onSet" type="1" type_size="1" nature="2" inner="0" tooltip="When this input is stimulated, the intensity of all the LEDs from the group is&#x0A;set to the intensity parameter value." id="2" /><Output name="onReady" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when LEDs intensity has been set." id="3" /><Parameter name="LEDs group" inherits_from_parent="0" content_type="3" value="AllLeds" default_value="EarLeds" custom_choice="1" tooltip="The group of LEDs which intensity is to set.&#x0A;&#x0A;Note: You can call the listGroups() method of ALMotion to get the name of LEDs&#x0A;groups which are not listed here." id="4"><Choice value="AllLeds" /><Choice value="BrainLeds" /><Choice value="EarLeds" /><Choice value="FaceLeds" /><Choice value="FeetLeds" /><Choice value="LeftEarLeds" /><Choice value="LeftFaceLeds" /><Choice value="LeftFootLeds" /><Choice value="RightEarLeds" /><Choice value="RightFaceLeds" /><Choice value="RightFootLeds" /></Parameter><Parameter name="Intensity (%)" inherits_from_parent="0" content_type="1" value="100" default_value="100" min="0" max="100" tooltip="Intensity all the LEDs from the group is set to." id="5" /><Parameter name="Duration (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="60" tooltip="How much time to go to the max/min intensity in seconds." id="6" /></Box><Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="1" /><Link inputowner="4" indexofinput="2" outputowner="3" indexofoutput="3" /><Link inputowner="3" indexofinput="2" outputowner="4" indexofoutput="3" /><Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" /></Diagram></BehaviorKeyframe></BehaviorLayer><ActuatorList model="juliette"><ActuatorCurve name="value" actuator="HeadPitch" mute="0" unit="0"><Key frame="1" value="-21.23" /><Key frame="12" value="-0.79042" /><Key frame="16" value="-7.03126" /><Key frame="19" value="-0.354618" /><Key frame="20" value="-15.7608" /><Key frame="22" value="-21.4438" /><Key frame="24" value="-21.5262" /><Key frame="27" value="1.66993" /><Key frame="33" value="-21.1967" /><Key frame="35" value="-21.5128" /><Key frame="37" value="-21.4138" /><Key frame="39" value="-21.5128" /><Key frame="41" value="-21.4137" /><Key frame="43" value="-21.6618" /><Key frame="45" value="-21.6618" /><Key frame="47" value="-21.6618" /><Key frame="51" value="-22.1117" /><Key frame="53" value="-22.1117" /><Key frame="56" value="-22.1117" /><Key frame="65" value="-21.1967" /><Key frame="67" value="-21.1967" /><Key frame="69" value="-21.1967" /><Key frame="72" value="-21.1967" /><Key frame="74" value="-21.1967" /><Key frame="78" value="-21.1967" /><Key frame="80" value="-21.6618" /><Key frame="82" value="-21.4896" /><Key frame="90" value="-11.4258" /></ActuatorCurve><ActuatorCurve name="value" actuator="HeadYaw" mute="0" unit="0"><Key frame="1" value="0.983776" /><Key frame="12" value="0.399108" /><Key frame="16" value="0.878909" /><Key frame="19" value="0.017056" /><Key frame="20" value="1.05532" /><Key frame="22" value="1.0458" /><Key frame="24" value="1.00192" /><Key frame="27" value="-24.873" /><Key frame="33" value="0.953907" /><Key frame="35" value="1.00191" /><Key frame="37" value="1.06667" /><Key frame="39" value="1.00191" /><Key frame="41" value="1.02163" /><Key frame="43" value="1.03904" /><Key frame="45" value="1.03904" /><Key frame="47" value="1.03904" /><Key frame="51" value="1.06375" /><Key frame="53" value="1.06375" /><Key frame="56" value="1.06375" /><Key frame="65" value="1.06375" /><Key frame="67" value="1.06375" /><Key frame="69" value="1.06375" /><Key frame="72" value="1.06375" /><Key frame="74" value="1.06375" /><Key frame="78" value="1.06375" /><Key frame="80" value="1.03905" /><Key frame="82" value="1.07445" /><Key frame="90" value="0.0878909" /></ActuatorCurve><ActuatorCurve name="value" actuator="HipPitch" mute="0" unit="0"><Key frame="1" value="-2.64631" /><Key frame="12" value="-4.5" /><Key frame="16" value="-4.13086" /><Key frame="19" value="-2.48604" /><Key frame="20" value="-7" /><Key frame="22" value="-2.29621" /><Key frame="24" value="-2.40949" /><Key frame="27" value="-3.60351" /><Key frame="33" value="-2.68208" /><Key frame="35" value="-2.43173" /><Key frame="37" value="-2.87125" /><Key frame="39" value="-2.43173" /><Key frame="41" value="-19.2" /><Key frame="43" value="-46.7" /><Key frame="45" value="-32.917" /><Key frame="47" value="-46.7" /><Key frame="51" value="-23.3468" /><Key frame="53" value="-23.3468" /><Key frame="56" value="-23.3468" /><Key frame="65" value="-2.68191" /><Key frame="67" value="-2.68191" /><Key frame="69" value="-2.68191" /><Key frame="72" value="-2.68191" /><Key frame="74" value="-2.68191" /><Key frame="78" value="-2.68191" /><Key frame="80" value="-3.1901" /><Key frame="82" value="-2.90802" /><Key frame="90" value="-2.63671" /></ActuatorCurve><ActuatorCurve name="value" actuator="HipRoll" mute="0" unit="0"><Key frame="1" value="0.0812631" /><Key frame="12" value="0" /><Key frame="16" value="5.36133" /><Key frame="19" value="5" /><Key frame="20" value="6.1" /><Key frame="22" value="3.7" /><Key frame="24" value="2" /><Key frame="27" value="0.878909" /><Key frame="33" value="0.115566" /><Key frame="35" value="0.026845" /><Key frame="37" value="-0.217886" /><Key frame="39" value="0.026845" /><Key frame="41" value="-0.21628" /><Key frame="43" value="-0.0861488" /><Key frame="45" value="-0.0861488" /><Key frame="47" value="-0.0861488" /><Key frame="51" value="0.0268451" /><Key frame="53" value="0.0268451" /><Key frame="56" value="0.0268451" /><Key frame="65" value="0.146406" /><Key frame="67" value="0.146406" /><Key frame="69" value="0.146406" /><Key frame="72" value="0.146406" /><Key frame="74" value="0.146406" /><Key frame="78" value="0.146406" /><Key frame="80" value="-0.0861488" /><Key frame="82" value="0.0268453" /><Key frame="90" value="-0.351564" /></ActuatorCurve><ActuatorCurve name="value" actuator="KneePitch" mute="0" unit="0"><Key frame="1" value="-0.0648839" /><Key frame="12" value="-0.58452" /><Key frame="16" value="-1.14258" /><Key frame="19" value="-0.482239" /><Key frame="20" value="-0.410985" /><Key frame="22" value="-0.410985" /><Key frame="24" value="-0.51351" /><Key frame="27" value="-1.05469" /><Key frame="33" value="-0.464463" /><Key frame="35" value="-0.345453" /><Key frame="37" value="-0.524632" /><Key frame="39" value="-0.345453" /><Key frame="41" value="-1.4" /><Key frame="43" value="-0.099398" /><Key frame="45" value="12.4006" /><Key frame="47" value="-0.099398" /><Key frame="51" value="7.3303" /><Key frame="53" value="7.3303" /><Key frame="56" value="7.3303" /><Key frame="65" value="-0.276473" /><Key frame="67" value="-0.276473" /><Key frame="69" value="-0.243854" /><Key frame="72" value="-0.276473" /><Key frame="74" value="-0.243854" /><Key frame="78" value="-0.276473" /><Key frame="80" value="-0.4453" /><Key frame="82" value="-0.0648839" /><Key frame="90" value="-0.9668" /></ActuatorCurve><ActuatorCurve name="value" actuator="LElbowRoll" mute="0" unit="0"><Key frame="1" value="-51.4964" /><Key frame="12" value="-28.6967" /><Key frame="16" value="-89.5" /><Key frame="19" value="-89.5" /><Key frame="20" value="-69.4739" /><Key frame="22" value="-62.7" /><Key frame="24" value="-63.2442" /><Key frame="27" value="-59.5899" /><Key frame="33" value="-89.448" /><Key frame="35" value="-89.2653" /><Key frame="37" value="-89.1659" /><Key frame="39" value="-89.2653" /><Key frame="41" value="-89.1651" /><Key frame="43" value="-89.0352" /><Key frame="45" value="-89.0352" /><Key frame="47" value="-89.0352" /><Key frame="51" value="-86.3045" /><Key frame="53" value="-86.7" /><Key frame="56" value="-86.7" /><Key frame="65" value="-87.9051" /><Key frame="67" value="-51.4" /><Key frame="69" value="-51.4593" /><Key frame="72" value="-51.4" /><Key frame="74" value="-51.4593" /><Key frame="78" value="-51.4" /><Key frame="80" value="-51.5957" /><Key frame="82" value="-51.5768" /><Key frame="90" value="-29.7949" /></ActuatorCurve><ActuatorCurve name="value" actuator="LElbowYaw" mute="0" unit="0"><Key frame="1" value="-22.1051" /><Key frame="12" value="-69.6722" /><Key frame="16" value="-19.8" /><Key frame="19" value="2.1" /><Key frame="20" value="51.2288" /><Key frame="22" value="55.5" /><Key frame="24" value="55.4413" /><Key frame="27" value="4.39453" /><Key frame="33" value="-63.9996" /><Key frame="35" value="-63.8601" /><Key frame="37" value="-63.5599" /><Key frame="39" value="-63.8601" /><Key frame="41" value="-63.437" /><Key frame="43" value="-62.7408" /><Key frame="45" value="-61.4742" /><Key frame="47" value="-62.7408" /><Key frame="49" value="-55.5" /><Key frame="51" value="-51" /><Key frame="53" value="-64" /><Key frame="56" value="-119.5" /><Key frame="65" value="-21.3" /><Key frame="67" value="-21.7953" /><Key frame="69" value="-21.6093" /><Key frame="72" value="-21.7953" /><Key frame="74" value="-21.6093" /><Key frame="78" value="-21.7953" /><Key frame="80" value="-22.022" /><Key frame="82" value="-21.9691" /><Key frame="90" value="-70.8398" /></ActuatorCurve><ActuatorCurve name="value" actuator="LHand" mute="0" unit="1"><Key frame="1" value="0.9692" /><Key frame="12" value="0.433926" /><Key frame="16" value="0.938489" /><Key frame="19" value="0.98" /><Key frame="20" value="0.976041" /><Key frame="22" value="0.977037" /><Key frame="24" value="0.979971" /><Key frame="27" value="0.679262" /><Key frame="33" value="0.0231299" /><Key frame="35" value="0.0231299" /><Key frame="37" value="0.023569" /><Key frame="39" value="0.0231299" /><Key frame="41" value="0.0270822" /><Key frame="43" value="0.98" /><Key frame="45" value="0.02" /><Key frame="47" value="0.98" /><Key frame="49" value="0.98" /><Key frame="51" value="0.97304" /><Key frame="53" value="0.97304" /><Key frame="56" value="0.97304" /><Key frame="65" value="0.98" /><Key frame="67" value="0.98" /><Key frame="69" value="0.98" /><Key frame="72" value="0.98" /><Key frame="74" value="0.98" /><Key frame="78" value="0.98" /><Key frame="80" value="0.98" /><Key frame="82" value="0.976871" /><Key frame="90" value="0.606327" /></ActuatorCurve><ActuatorCurve name="value" actuator="LShoulderPitch" mute="0" unit="0"><Key frame="1" value="31.5451" /><Key frame="12" value="89" /><Key frame="16" value="-34.4" /><Key frame="19" value="-72.6" /><Key frame="20" value="-72.0632" /><Key frame="22" value="-72.3326" /><Key frame="24" value="-72.2566" /><Key frame="27" value="-31.1133" /><Key frame="33" value="-8.54971" /><Key frame="35" value="8.5" /><Key frame="37" value="-4.8" /><Key frame="39" value="8.5" /><Key frame="41" value="-4.1475" /><Key frame="43" value="3.9" /><Key frame="45" value="11.8" /><Key frame="47" value="3.9" /><Key frame="49" value="29.9" /><Key frame="51" value="30.9" /><Key frame="53" value="64" /><Key frame="56" value="64" /><Key frame="65" value="33.8" /><Key frame="67" value="32.4372" /><Key frame="69" value="11.7" /><Key frame="72" value="32.4372" /><Key frame="74" value="7.7" /><Key frame="78" value="32.4372" /><Key frame="80" value="31.9284" /><Key frame="82" value="31.9243" /><Key frame="90" value="88.5938" /></ActuatorCurve><ActuatorCurve name="value" actuator="LShoulderRoll" mute="0" unit="0"><Key frame="1" value="75.1365" /><Key frame="12" value="8.16897" /><Key frame="16" value="31.8" /><Key frame="19" value="55" /><Key frame="20" value="54.8439" /><Key frame="22" value="54.787" /><Key frame="24" value="54.3947" /><Key frame="27" value="33.75" /><Key frame="33" value="3.63601" /><Key frame="35" value="8.8" /><Key frame="37" value="4.2" /><Key frame="39" value="8.8" /><Key frame="41" value="4.41454" /><Key frame="43" value="3.9" /><Key frame="45" value="1.57042" /><Key frame="47" value="3.9" /><Key frame="49" value="0.5" /><Key frame="51" value="20.1" /><Key frame="53" value="20.4" /><Key frame="56" value="20.4" /><Key frame="65" value="39" /><Key frame="67" value="40.438" /><Key frame="69" value="36.4" /><Key frame="72" value="56.3" /><Key frame="74" value="36.4" /><Key frame="78" value="76.2" /><Key frame="80" value="76.0423" /><Key frame="82" value="76.0114" /><Key frame="90" value="8.26171" /></ActuatorCurve><ActuatorCurve name="value" actuator="LWristYaw" mute="0" unit="0"><Key frame="1" value="18.6305" /><Key frame="12" value="-6.96397" /><Key frame="16" value="-35.4228" /><Key frame="19" value="-37.3" /><Key frame="20" value="-37.1324" /><Key frame="22" value="-37.5839" /><Key frame="24" value="-37.1211" /><Key frame="27" value="-2.02391" /><Key frame="33" value="104.5" /><Key frame="35" value="104.5" /><Key frame="37" value="104.333" /><Key frame="39" value="104.5" /><Key frame="41" value="104.375" /><Key frame="43" value="0" /><Key frame="45" value="-6.38447" /><Key frame="47" value="0" /><Key frame="49" value="-7.5" /><Key frame="51" value="-2.94144" /><Key frame="53" value="-104.5" /><Key frame="56" value="-104.5" /><Key frame="65" value="18.7" /><Key frame="67" value="18.4921" /><Key frame="69" value="20.2" /><Key frame="72" value="18.4921" /><Key frame="74" value="44.2" /><Key frame="78" value="18.4921" /><Key frame="80" value="19.0208" /><Key frame="82" value="19.0251" /><Key frame="90" value="1.14019" /></ActuatorCurve><ActuatorCurve name="value" actuator="RElbowRoll" mute="0" unit="0"><Key frame="1" value="55.2918" /><Key frame="12" value="28.6783" /><Key frame="16" value="22.7637" /><Key frame="19" value="29.9903" /><Key frame="20" value="11.8218" /><Key frame="22" value="5.56233" /><Key frame="24" value="6.10498" /><Key frame="27" value="41.9" /><Key frame="33" value="89.4099" /><Key frame="35" value="89.2704" /><Key frame="37" value="88.863" /><Key frame="39" value="89.2704" /><Key frame="41" value="88.8612" /><Key frame="43" value="88.965" /><Key frame="45" value="88.965" /><Key frame="47" value="88.965" /><Key frame="49" value="89.5" /><Key frame="51" value="89.4238" /><Key frame="53" value="86.7" /><Key frame="56" value="86.7" /><Key frame="65" value="89.2419" /><Key frame="67" value="55.3" /><Key frame="69" value="55.3558" /><Key frame="72" value="55.3" /><Key frame="74" value="55.3558" /><Key frame="78" value="55.3" /><Key frame="80" value="55.4822" /><Key frame="82" value="55.3974" /><Key frame="90" value="29.9707" /></ActuatorCurve><ActuatorCurve name="value" actuator="RElbowYaw" mute="0" unit="0"><Key frame="1" value="44.2767" /><Key frame="12" value="69.7567" /><Key frame="16" value="77.3438" /><Key frame="19" value="69.5725" /><Key frame="20" value="89.3919" /><Key frame="22" value="96.0923" /><Key frame="24" value="95.6163" /><Key frame="27" value="87.4512" /><Key frame="33" value="66.6478" /><Key frame="35" value="67.2059" /><Key frame="37" value="67.0225" /><Key frame="39" value="67.2059" /><Key frame="41" value="66.8214" /><Key frame="43" value="63.4897" /><Key frame="45" value="60.0073" /><Key frame="47" value="63.4897" /><Key frame="49" value="57.5" /><Key frame="51" value="57.7818" /><Key frame="53" value="57.7818" /><Key frame="56" value="119.5" /><Key frame="65" value="58.0249" /><Key frame="67" value="44.3" /><Key frame="69" value="44.3227" /><Key frame="72" value="44.3" /><Key frame="74" value="44.3227" /><Key frame="78" value="44.3" /><Key frame="80" value="44.4893" /><Key frame="82" value="44.8121" /><Key frame="90" value="70.6641" /></ActuatorCurve><ActuatorCurve name="value" actuator="RHand" mute="0" unit="1"><Key frame="1" value="0.9692" /><Key frame="12" value="0.374473" /><Key frame="16" value="0.453427" /><Key frame="19" value="0.370217" /><Key frame="20" value="0.60701" /><Key frame="22" value="0.688049" /><Key frame="24" value="0.683011" /><Key frame="27" value="0.508787" /><Key frame="33" value="0.0261192" /><Key frame="35" value="0.0261192" /><Key frame="37" value="0.0336559" /><Key frame="39" value="0.0261192" /><Key frame="41" value="0.026421" /><Key frame="43" value="0.98" /><Key frame="45" value="0.02" /><Key frame="47" value="0.98" /><Key frame="49" value="0.98" /><Key frame="51" value="0.97304" /><Key frame="53" value="0.97304" /><Key frame="56" value="0.97304" /><Key frame="65" value="0.98" /><Key frame="67" value="0.98" /><Key frame="69" value="0.98" /><Key frame="72" value="0.98" /><Key frame="74" value="0.98" /><Key frame="78" value="0.98" /><Key frame="80" value="0.98" /><Key frame="82" value="0.976871" /><Key frame="90" value="0.603691" /></ActuatorCurve><ActuatorCurve name="value" actuator="RShoulderPitch" mute="0" unit="0"><Key frame="1" value="43.6768" /><Key frame="12" value="89" /><Key frame="16" value="93.252" /><Key frame="19" value="90.4696" /><Key frame="20" value="98.471" /><Key frame="22" value="100.677" /><Key frame="24" value="100.357" /><Key frame="27" value="19.4" /><Key frame="33" value="-5.31974" /><Key frame="35" value="8.8" /><Key frame="37" value="-2.7" /><Key frame="39" value="8.8" /><Key frame="41" value="-2.40786" /><Key frame="43" value="4.3541" /><Key frame="45" value="13.0216" /><Key frame="47" value="4.3541" /><Key frame="49" value="26.6" /><Key frame="51" value="38.7486" /><Key frame="53" value="64" /><Key frame="56" value="64" /><Key frame="65" value="62" /><Key frame="67" value="44.3" /><Key frame="69" value="24.5" /><Key frame="72" value="44.3" /><Key frame="74" value="24.5" /><Key frame="78" value="44.3" /><Key frame="80" value="44.1212" /><Key frame="82" value="44.109" /><Key frame="90" value="89.209" /></ActuatorCurve><ActuatorCurve name="value" actuator="RShoulderRoll" mute="0" unit="0"><Key frame="1" value="-75.3664" /><Key frame="12" value="-8.15797" /><Key frame="16" value="-7.91015" /><Key frame="19" value="-8.4205" /><Key frame="20" value="-6.98603" /><Key frame="22" value="-5.9784" /><Key frame="24" value="-6.9667" /><Key frame="27" value="-5.21178" /><Key frame="33" value="-1.16261" /><Key frame="35" value="-6.5" /><Key frame="37" value="-1.82506" /><Key frame="39" value="-6.5" /><Key frame="41" value="-2.04306" /><Key frame="43" value="-2.51339" /><Key frame="45" value="-3.17845" /><Key frame="47" value="-2.51339" /><Key frame="49" value="-7.8" /><Key frame="51" value="-16.6773" /><Key frame="53" value="-20.4" /><Key frame="56" value="-20.4" /><Key frame="65" value="-38.4" /><Key frame="67" value="-38.8958" /><Key frame="69" value="-38.572" /><Key frame="72" value="-56.3" /><Key frame="74" value="-38.572" /><Key frame="78" value="-76.2" /><Key frame="80" value="-76.0509" /><Key frame="82" value="-76.0217" /><Key frame="90" value="-7.99804" /></ActuatorCurve><ActuatorCurve name="value" actuator="RWristYaw" mute="0" unit="0"><Key frame="1" value="-19.5839" /><Key frame="12" value="6.44476" /><Key frame="16" value="4.56796" /><Key frame="19" value="6.24074" /><Key frame="20" value="-0.0689989" /><Key frame="22" value="-2.14467" /><Key frame="24" value="-1.97826" /><Key frame="27" value="-21.7117" /><Key frame="33" value="-104.5" /><Key frame="35" value="-104.5" /><Key frame="37" value="-103.978" /><Key frame="39" value="-104.5" /><Key frame="41" value="-103.978" /><Key frame="43" value="0" /><Key frame="45" value="24.4731" /><Key frame="47" value="0" /><Key frame="49" value="31" /><Key frame="51" value="22.092" /><Key frame="53" value="104.5" /><Key frame="56" value="104.5" /><Key frame="65" value="-19.4" /><Key frame="67" value="-19.5014" /><Key frame="69" value="-44.2" /><Key frame="72" value="-19.5014" /><Key frame="74" value="-44.2" /><Key frame="78" value="-19.5014" /><Key frame="80" value="-20.0094" /><Key frame="82" value="-20.0135" /><Key frame="90" value="-0.881327" /></ActuatorCurve></ActuatorList></Timeline></Box><Box name="INTRO" id="5" localization="8" tooltip="Say some text. The text can be localized." x="364" y="60"><bitmap>media/images/box/interaction/say.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += self.getParameter("Text")
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" /><Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" /><Parameter name="Text" inherits_from_parent="0" content_type="5" value="Santa Claus is coming to town!" default_value="" tooltip="The text you want to say. Don&apos;t forget to translate it!" id="7" /></Box><Box name="Play Video" id="6" localization="8" tooltip="Plays the video; returns when it&apos;s done.&#x0A;&#x0A;You can also interrupt, pause or resume the video.&#x0A;&#x0A;You can get events when the video starts or finishes.&#x0A;&#x0A;V1.0.0&#x0A;" x="798" y="68"><bitmap>media/images/box/interaction/rec_movie.png</bitmap><script language="4"><content><![CDATA[
+
+class MyClass(GeneratedClass):
+
+    def onLoad(self):
+        self.isRunning = False
+        self.startConnectId = None
+        self.finishConnectId = None
+        self.tabletService = None
+
+    def onUnload(self):
+        if self.tabletService:
+            try:
+                self.tabletService.stopVideo()
+            except Exception as e:
+                self.logger.error(e)
+            finally:
+                self.disconnectStartedListener()
+                self.disconnectFinishedListener()
+                self.isRunning = False
+
+    def disconnectFinishedListener(self):
+        if self.finishConnectId and self.tabletService:
+            try:
+                self.tabletService.videoFinished.disconnect(self.finishConnectId)
+                self.finishConnectId = None
+            except Exception as e:
+                self.logger.error(e)
+
+    def disconnectStartedListener(self):
+        if self.startConnectId and self.tabletService:
+            try:
+                self.tabletService.videoStarted.disconnect(self.startConnectId)
+                self.startConnectId = None
+            except Exception as e:
+                self.logger.error(e)
+
+    def _getTabletService(self):
+        tabletService = None
+        try:
+            tabletService = self.session().service("ALTabletService")
+        except Exception as e:
+            self.logger.error(e)
+        return tabletService
+
+    def _getAbsoluteUrl(self, partialUrl):
+        import os
+        subpath = os.path.join(self.packageUid(), os.path.normpath(partialUrl).lstrip("\\/"))
+        if self.tabletService:
+            return "http://%s/apps/%s" % (self.tabletService.robotIp(), subpath.replace(os.path.sep, "/"))
+        else:
+            self.logger.warning("No ALTabletService, can't get robot Ip.")
+            return None
+
+    def connectStartCallback(self):
+        try:
+            self.startConnectId = self.tabletService.videoStarted.connect(self.onVideoStarted)
+        except Exception as err:
+            self.logger.warning("Failed to subscribe to started callback: %s " % err)
+
+    def connectStopCallback(self):
+        try:
+            self.finishConnectId = self.tabletService.videoFinished.connect(self.onVideoFinished)
+        except Exception as err:
+            self.logger.warning("Failed to subscribe to stopped callback: %s " % err)
+
+    def onInput_onStart(self):
+        if self.isRunning:
+            return # already running, nothing to do
+        self.isRunning = True
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        self.tabletService = self._getTabletService()
+        if self.tabletService:
+            try:
+                url = self.getParameter("VideoPath")
+                if url == '':
+                    self.logger.error("URL of the video is empty")
+                if not url.startswith('http'):
+                    url = self._getAbsoluteUrl(url)
+                self.connectStartCallback()
+                self.connectStopCallback()
+                self.tabletService.playVideo(url)
+            except Exception as err:
+                self.logger.warning("Error during playVideo or subscribe: %s " % err)
+                self.onStopped()
+                self.isRunning = False
+        else:
+            self.logger.warning("No ALTabletService, can't play video.")
+            self.onStopped()
+            self.isRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()
+        self.onStopped()
+
+    def onInput_onPauseVideo(self):
+        if self.tabletService:
+            self.tabletService.pauseVideo()
+
+    def onInput_onResumeVideo(self):
+        if self.tabletService:
+            self.tabletService.resumeVideo()
+
+    def onVideoStarted(self):
+        self.disconnectStartedListener()
+        self.onStarted()
+
+    def onVideoFinished(self):
+        self.disconnectFinishedListener()
+        self.onStopped()
+        self.isRunning = False]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Input name="onPauseVideo" type="1" type_size="1" nature="1" inner="0" tooltip="Pause the video when a signal is received on this input." id="4" /><Input name="onResumeVideo" type="1" type_size="1" nature="1" inner="0" tooltip="Resume the video when a signal is received on this input." id="5" /><Output name="onStarted" type="1" type_size="1" nature="2" inner="0" tooltip="Triggered when the video started" id="6" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="7" /><Parameter name="VideoPath" inherits_from_parent="0" content_type="3" value="santaComing.mp4" default_value="" custom_choice="0" tooltip='path of the video inside the &quot;html&quot; folder (e.g. &quot;/video/myvideo.mp4&quot;' id="8" /></Box><Box name="Face Detection" id="7" localization="8" tooltip="Detect people&apos;s face and return the number of detected faces.&#x0A;&#x0A;Note: Detect even faces that are not registered in the faces database (that&#x0A;you can teach him with the Learn Face box)." x="204" y="31"><bitmap>media/images/box/interaction/face.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bIsRunning = False
+
+    def onUnload(self):
+        self.bIsRunning = False
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+
+    def onInput_onStop(self):
+        if( self.bIsRunning ):
+            self.onUnload()
+            self.onStopped()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Input name="FaceDetected" type="0" type_size="1" nature="4" stm_value_name="FaceDetected" inner="1" tooltip="Connected to ALMemory. Will be stimulated every time the value subscribed to changes, respecting the refresh period." id="4" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is stopped." id="5" /><Output name="numberOfFaces" type="2" type_size="1" nature="2" inner="0" tooltip="Number of detected faces. This output is stimulated each time the number of&#x0A;detected faces change." id="6" /><Output name="onNoFace" type="1" type_size="1" nature="2" inner="0" tooltip="No face is detected." id="7" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram><Box name="Count Det. Faces" id="3" localization="8" tooltip="Process face detection extractor data (FaceDetected) to count the number&#x0A;of detected faces and notify when there is no face detected.&#x0A;&#x0A;An output (either one or the other) is stimulated each time the number of&#x0A;detected faces change." x="174" y="71"><bitmap>media/images/box/interaction/reco_face.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.nFacesDetected = -1
+
+    def onUnload(self):
+        #puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self, p):
+        if(len(p) > 0):
+            if(self.nFacesDetected != len(p[1]) -1): # an additional array has been placed at the end for time
+                self.nFacesDetected = len(p[1]) -1  # filtered info and has to be substracted when counting faces
+                if(self.nFacesDetected != 0):
+                    self.onFaceDetected( self.nFacesDetected )
+                else:
+                    self.onNoFace()
+        else:
+            if(self.nFacesDetected != 0):
+                self.nFacesDetected = 0
+                self.onNoFace()
+
+    def onInput_onStop(self):
+        pass]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input. It must be the&#x0A;FaceDetected extractor data." id="2" /><Output name="onFaceDetected" type="2" type_size="1" nature="1" inner="0" tooltip="Number of detected faces." id="3" /><Output name="onNoFace" type="1" type_size="1" nature="1" inner="0" tooltip="No face is detected." id="4" /></Box><Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="4" /><Link inputowner="0" indexofinput="6" outputowner="3" indexofoutput="3" /><Link inputowner="0" indexofinput="7" outputowner="3" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Box name="Go to position Stand" id="1" localization="8" tooltip="Robot will go to the position Stand&lt;br/&gt;Position description : Standing position with low power consumption. " x="590" y="73"><bitmap>media/images/positions/Stand.png</bitmap><script language="4"><content><![CDATA[#~ This script was generated automatically by drang&drop from Position Library
+class MyClass(GeneratedClass):
+    def __init__(self):
+        try: # disable autoBind
+          GeneratedClass.__init__(self, False)
+        except TypeError: # if NAOqi < 1.14
+          GeneratedClass.__init__( self )
+
+    def onLoad(self):
+        self.postureProxy = None
+        try:
+            self.postureProxy = ALProxy("ALRobotPosture")
+        except:
+            self.logger.error("Module 'ALRobotPosture' not found.")
+
+    def onUnload(self):
+        if(self.postureProxy != None):
+            self.postureProxy.stopMove()
+
+    def onInput_onStart(self):
+        if(self.postureProxy != None):
+            result = self.postureProxy.goToPosture("Stand", 0.8)
+            if(result):
+                self.success()
+            else:
+                self.logger.error("Posture Stand is not a part of the standard posture library or robot cannot reach the posture")
+                self.failure()
+        else:
+            self.failure()
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is recommanded to call onUnload of this box in a onStop method,               as the code written in onUnload is used to stop the box as well
+        pass]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="success" type="1" type_size="1" nature="1" inner="0" tooltip="Stimulated if the posture has been reached." id="4" /><Output name="failure" type="1" type_size="1" nature="1" inner="0" tooltip="Stimulated if the posture could not be reached." id="5" /><Resource name="All motors" type="Lock" timeout="0" /><Resource name="Stiffness" type="Lock" timeout="0" /></Box><Box name="Eye LEDs" id="9" localization="8" tooltip="Set the LED color of the eyes. Note that you must open the box to enter the color." x="607" y="236"><bitmap>media/images/box/interaction/LED.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Output name="onDone" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="3" /><Parameter name="Side" inherits_from_parent="0" content_type="3" value="Both" default_value="Both" custom_choice="0" tooltip="Choose the eye where the LED light is set." id="4"><Choice value="Both" /><Choice value="Left" /><Choice value="Right" /></Parameter><Parameter name="Duration (s)" inherits_from_parent="0" content_type="2" value="3.1" default_value="0.1" min="0" max="5" tooltip="Transition&apos;s duration in seconds." id="5" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram><Box name="Eyes LEDs" id="15" localization="8" tooltip="Set the color of LEDs of robot&apos;s eyes." x="281" y="41"><bitmap>media/images/box/interaction/LED.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.ids = []
+        self.leds = ALProxy("ALLeds")
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_color(self, p):
+        if( self.getParameter("Side") == "Left" ):
+            sGroup = "LeftFaceLeds"
+        elif( self.getParameter("Side") == "Right" ):
+            sGroup = "RightFaceLeds"
+        else:
+            sGroup = "FaceLeds"
+        id = self.leds.post.fadeRGB(sGroup, 256*256*p[0] + 256*p[1] + p[2], self.getParameter("Duration (s)"))
+        self.ids.append(id)
+        self.leds.wait(id, 0)
+        self.ids.remove(id)
+        if( self.ids == [] ):
+            self.onDone() # activate output of the box]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="color" type="2" type_size="3" nature="2" inner="0" tooltip="Color of robot&apos;s eyes." id="2" /><Output name="onDone" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="3" /><Parameter name="Side" inherits_from_parent="1" content_type="3" value="Both" default_value="Both" custom_choice="0" tooltip="Choose the eye where the LED light is set." id="4"><Choice value="Both" /><Choice value="Left" /><Choice value="Right" /></Parameter><Parameter name="Duration (s)" inherits_from_parent="1" content_type="2" value="0.1" default_value="0.1" min="0" max="5" tooltip="Transition&apos;s duration in seconds." id="5" /></Box><Box name="Color Edit" id="16" localization="8" tooltip="Transmit a table of number [R,G,B] correponsding to the selected color." plugin="coloredit_plugin" x="105" y="47"><bitmap>media/images/box/interaction/vocabulary.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+	def __init__(self):
+		GeneratedClass.__init__(self)
+
+	def onInput_onStart(self):
+		self.onStopped([255, 0, 0])]]></content></script><pluginContent><color>#ff0000</color></pluginContent><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="To send the color on the output." id="2" /><Output name="onStopped" type="2" type_size="3" nature="1" inner="0" tooltip="[R,G,B] with R, G and B between 0 and 255." id="3" /></Box><Link inputowner="15" indexofinput="2" outputowner="16" indexofoutput="3" /><Link inputowner="16" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="0" indexofinput="3" outputowner="15" indexofoutput="3" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Box name="Look At" id="3" localization="-1" tooltip="This box makes the robot look at a desired position." x="73" y="34"><bitmap>media/images/box/movement/move_head.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        self.tracker = ALProxy( "ALTracker" )
+
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+
+        self.maxSpeed = 0.5
+
+        self.useWholeBody = False
+        self.frame = 0 #FRAME TORSO
+
+    def onLoad(self):
+        self.BIND_PYTHON(self.getName(), "setParameter")
+
+    def onUnload(self):
+        pass
+
+    def onInput_onStart(self):
+        self.x = self.getParameter("X (m)")
+        self.y = self.getParameter("Y (m)")
+        self.z = self.getParameter("Z (m)")
+
+        self.maxSpeed = self.getParameter("Speed (%)") / 100.0
+        self.useWholeBody = self.getParameter("WholeBody")
+
+        frameStr = self.getParameter("Frame")
+        if frameStr == "Torso":
+            self.frame = 0
+        elif frameStr == "World":
+            self.frame = 1
+        elif frameStr == "Robot":
+            self.frame = 2
+
+        self.tracker.lookAt([self.x, self.y, self.z], self.frame, self.maxSpeed, self.useWholeBody)
+        self.onStopped()
+
+    def onInput_onStop(self):
+        self.onUnload()
+        pass
+
+    def setParameter(self, parameterName, newValue):
+        GeneratedClass.setParameter(self, parameterName, newValue)
+
+        if (parameterName == "X (m)"):
+            self.x = newValue
+            self.tracker.lookAt([self.x, self.y, self.z], self.frame, self.maxSpeed, self.useWholeBody)
+            self.onStopped()
+            return
+
+        if (parameterName == "Y (m)"):
+            self.y = newValue
+            self.tracker.lookAt([self.x, self.y, self.z], self.frame, self.maxSpeed, self.useWholeBody)
+            self.onStopped()
+            return
+
+        if (parameterName == "Z (m)"):
+            self.z = newValue
+            self.tracker.lookAt([self.x, self.y, self.z], self.frame, self.maxSpeed, self.useWholeBody)
+            self.onStopped()
+            return
+
+        if (parameterName == "Speed (%)"):
+            self.maxSpeed = newValue / 100.0
+            return
+
+        if (parameterName == "WholeBody"):
+            self.useWholeBody = newValue
+            return
+
+        if (parameterName == "Frame"):
+            if(newValue == "Torso"):
+                self.frame = 0
+            elif newValue == "World":
+                self.frame = 1
+            elif newValue == "Robot":
+                self.frame = 2]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" /><Parameter name="X (m)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0.001" max="10" tooltip="X coordinate of the target to look at." id="5" /><Parameter name="Y (m)" inherits_from_parent="0" content_type="2" value="0" default_value="0" min="-10" max="10" tooltip="Y coordinate of the target to look at." id="6" /><Parameter name="Z (m)" inherits_from_parent="0" content_type="2" value="0.7" default_value="0" min="-10" max="10" tooltip="Z coordinate of the target to look at." id="7" /><Parameter name="Speed (%)" inherits_from_parent="0" content_type="1" value="50" default_value="50" min="1" max="100" tooltip="Speed to move the head towards the desired position." id="8" /><Parameter name="WholeBody" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="Use whole body constraints" id="9" /><Parameter name="Frame" inherits_from_parent="0" content_type="3" value="Torso" default_value="Torso" custom_choice="0" tooltip="Select the frame of target." id="10"><Choice value="Torso" /><Choice value="World" /><Choice value="Robot" /></Parameter></Box><Box name="Show Image" id="13" localization="8" tooltip="display an image on the screen&#x0A;&#x0A;V1.0.0&#x0A;" x="339" y="495"><bitmap>media/images/box/interaction/rec_movie.png</bitmap><script language="4"><content><![CDATA[
+
+class MyClass(GeneratedClass):
+
+    def onLoad(self):
+        pass
+
+    def onUnload(self):
+        pass
+
+    def _getTabletService(self):
+        tabletService = None
+        try:
+            tabletService = self.session().service("ALTabletService")
+        except Exception as e:
+            self.logger.error(e)
+        return tabletService
+
+    def _getAbsoluteUrl(self, partial_url):
+        import os
+        subPath = os.path.join(self.packageUid(), os.path.normpath(partial_url).lstrip("\\/"))
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        return "http://%s/apps/%s" %(self._getTabletService().robotIp(), subPath.replace(os.path.sep, "/"))
+
+    def onInput_onStart(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                url = self.getParameter("ImageUrl")
+                if url == '':
+                    self.logger.error("URL of the image is empty")
+                if not url.startswith('http'):
+                    url = self._getAbsoluteUrl(url)
+                tabletService.showImage(url)
+            except Exception as err:
+                self.logger.error("Error during ShowImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't display the image.")
+            self.onStopped()
+
+    def onInput_onHideImage(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                tabletService.hideImage()
+            except Exception as err:
+                self.logger.error("Error during HideImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't hide the image.")
+            self.onStopped()
+
+    def onInput_onPreLoadImage(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                partialUrl = self.getParameter("ImageUrl")
+                fullUrl = self._getAbsoluteUrl(partialUrl)
+                tabletService.preLoadImage(fullUrl)
+            except Exception as err:
+                self.logger.warning("Error during preLoadImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't preload the image.")
+            self.onStopped()
+
+    def onInput_onStop(self):
+        self.onUnload()
+        self.onStopped()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Input name="onHideImage" type="1" type_size="1" nature="1" inner="0" tooltip="Hide the image when a signal is received on this input." id="4" /><Input name="onPreLoadImage" type="1" type_size="1" nature="1" inner="0" tooltip="Preload the image when a signal is received on this input." id="5" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="6" /><Parameter name="ImageUrl" inherits_from_parent="0" content_type="3" value="merry.png" default_value="" custom_choice="0" tooltip='path of the image inside the &quot;html&quot; folder (e.g. &quot;/images/myimage.png&quot;' id="7" /></Box><Box name="Say" id="8" localization="8" tooltip="Say some text. The text can be localized." x="1132" y="56"><bitmap>media/images/box/interaction/say.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += self.getParameter("Text")
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" /><Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" /><Parameter name="Text" inherits_from_parent="0" content_type="5" value="Happy Christmas!" default_value="" tooltip="The text you want to say. Don&apos;t forget to translate it!" id="7" /></Box><Box name="Counter" id="10" localization="-1" tooltip="Represent a counter.&#x0A;&#x0A;Each time the onStart input is stimulated, the counter value is sent on the&#x0A;currentValue output and incremented (or decremented) by Step value, from&#x0A;its Initial value to its Final value set in the parameters. Once the counter value is&#x0A;higher than its Final value, the onReinitialized output is stimulated and&#x0A;the counter is reinitialized to the Initial value.&#x0A;&#x0A;Note: You can also reinitialize the counter by stimulating the onInit&#x0A;input." x="970" y="477"><bitmap>media/images/box/loop.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.initializeParameters()
+        if( self.getParameter("Final value") - self.getParameter("Initial value") >= 0 ):
+            self.stepSign = +1
+        else:
+            self.stepSign = -1
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onNext(self):
+        bParamChanged = ( self.nLast != self.getParameter("Final value") or self.nFirst != self.getParameter("Initial value") )
+        bEnd = ( self.stepSign * self.nCounter > self.stepSign * self.nLast )
+        if( bEnd or bParamChanged ):
+            self.onInput_onInit()
+        if( not bEnd or bParamChanged ):
+            currentCounter = self.nCounter
+            self.nCounter = self.nCounter + self.stepSign * self.getParameter("Step value")
+            self.currentValue( currentCounter )
+
+    def initializeParameters(self):
+        self.nFirst = self.getParameter("Initial value")
+        self.nCounter = self.nFirst
+        self.nLast = self.getParameter("Final value")
+
+    def onInput_onInit(self):
+        self.initializeParameters()
+        self.onReinitialized()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onNext" type="1" type_size="1" nature="1" inner="0" tooltip="The counter next value is sent on the currentValue output when a signal is&#x0A;received on this input, unless it reached its Final value, then the onReinitialized&#x0A;output is stimulated." id="2" /><Input name="onInit" type="1" type_size="1" nature="1" inner="0" tooltip="When a signal is received on this input, the counter is reinitialized to its Initial&#x0A;value." id="3" /><Output name="currentValue" type="2" type_size="1" nature="2" inner="0" tooltip="Stimulated for each interaction with the counter current value." id="4" /><Output name="onReinitialized" type="1" type_size="1" nature="2" inner="0" tooltip="Stimulated when the loop is over or if the counter has been reinitialized." id="5" /><Parameter name="Initial value" inherits_from_parent="0" content_type="1" value="0" default_value="0" min="0" max="500" tooltip="The initial value of the counter (for the first iteration)." id="6" /><Parameter name="Step value" inherits_from_parent="0" content_type="1" value="1" default_value="1" min="1" max="500" tooltip="The counter value will be incremented or decremented with this value." id="7" /><Parameter name="Final value" inherits_from_parent="0" content_type="1" value="5" default_value="5" min="0" max="500" tooltip="It is the maximum (if increasing) or the minimum (if decreasing) value of the&#x0A;counter (thus for the last iteration).&#x0A;&#x0A;After this value, if the onStart input is called, the onReinitialized output will be&#x0A;stimulated and the counter will be reinitialized to its Initial value." id="8" /></Box><Box name="Go to position StandInit" id="11" localization="8" tooltip="Robot will go to the position StandInit&lt;br/&gt;Position description : Nao is ready to do anything from this position !" x="83" y="170"><bitmap>media/images/positions/StandInit.png</bitmap><script language="4"><content><![CDATA[#~ This script was generated automatically by drang&drop from Position Library
+class MyClass(GeneratedClass):
+    def __init__(self):
+        try: # disable autoBind
+          GeneratedClass.__init__(self, False)
+        except TypeError: # if NAOqi < 1.14
+          GeneratedClass.__init__( self )
+
+    def onLoad(self):
+        self.postureProxy = None
+        try:
+            self.postureProxy = ALProxy("ALRobotPosture")
+        except:
+            self.logger.error("Module 'ALRobotPosture' not found.")
+
+    def onUnload(self):
+        if(self.postureProxy != None):
+            self.postureProxy.stopMove()
+
+    def onInput_onStart(self):
+        if(self.postureProxy != None):
+            result = self.postureProxy.goToPosture("StandInit", 0.8)
+            if(result):
+                self.success()
+            else:
+                self.logger.error("Posture StandInit is not a part of the standard posture library or robot cannot reach the posture")
+                self.failure()
+        else:
+            self.failure()
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is recommanded to call onUnload of this box in a onStop method,               as the code written in onUnload is used to stop the box as well
+        pass]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="success" type="1" type_size="1" nature="1" inner="0" tooltip="Stimulated if the posture has been reached." id="4" /><Output name="failure" type="1" type_size="1" nature="1" inner="0" tooltip="Stimulated if the posture could not be reached." id="5" /><Resource name="All motors" type="Lock" timeout="0" /><Resource name="Stiffness" type="Lock" timeout="0" /></Box><Link inputowner="2" indexofinput="2" outputowner="6" indexofoutput="6" /><Link inputowner="7" indexofinput="3" outputowner="7" indexofoutput="6" /><Link inputowner="5" indexofinput="2" outputowner="7" indexofoutput="6" /><Link inputowner="1" indexofinput="2" outputowner="5" indexofoutput="4" /><Link inputowner="6" indexofinput="2" outputowner="1" indexofoutput="4" /><Link inputowner="9" indexofinput="2" outputowner="5" indexofoutput="4" /><Link inputowner="7" indexofinput="2" outputowner="3" indexofoutput="4" /><Link inputowner="13" indexofinput="3" outputowner="6" indexofoutput="6" /><Link inputowner="8" indexofinput="2" outputowner="2" indexofoutput="4" /><Link inputowner="13" indexofinput="2" outputowner="6" indexofoutput="7" /><Link inputowner="10" indexofinput="2" outputowner="8" indexofoutput="4" /><Link inputowner="11" indexofinput="2" outputowner="10" indexofoutput="4" /><Link inputowner="11" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="13" indexofinput="2" outputowner="11" indexofoutput="4" /><Link inputowner="3" indexofinput="2" outputowner="11" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box></ChoregrapheProject>

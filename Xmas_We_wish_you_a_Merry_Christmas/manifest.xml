@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="xmas_we_wish_you_a_merry_christmas-07c67c" version="0.0.0">
+ <names>
+  <name lang="en_US">We wish you a merry christmas</name>
+ </names>
+ <descriptions>
+  <description lang="en_US">Once Pepper detects a face, it start to play video and dance to the "We wish you a Merry Christmas".</description>
+ </descriptions>
+ <supportedLanguages>
+  <language>en_US</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
